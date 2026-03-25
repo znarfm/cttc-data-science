@@ -1,4 +1,5 @@
 import pandas as pd
+from rich import print
 
 def analyze_data(file_path):
     """
