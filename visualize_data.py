@@ -16,7 +16,7 @@ def visualize_data(file_path, output_dir='plots'):
     figsize_with_subplots = (10, 10)
 
     # 1. Feature Grid Visualization
-    fig = plt.figure(figsize=figsize_with_subplots) 
+    plt.figure(figsize=figsize_with_subplots) 
     fig_dims = (3, 2)
 
     # Survival Counts
@@ -48,14 +48,14 @@ def visualize_data(file_path, output_dir='plots'):
     # 2. Survival Rate by Feature
     # Pclass
     pclass_xt = pd.crosstab(df['Pclass'], df['Survived'])
-    pclass_xt_pct = pclass_xt.div(pclass_xt.sum(1).astype(float), axis=0)
+    pclass_xt_pct = pclass_xt.div(pclass_xt.sum(axis=1).astype(float), axis=0)
     pclass_xt_pct.plot(kind='bar', stacked=True, title='Survival Rate by Pclass')
     plt.savefig(f'{output_dir}/survival_rate_pclass.png')
     plt.close()
 
     # Sex
     sex_xt = pd.crosstab(df['Sex_Val'], df['Survived'])
-    sex_xt_pct = sex_xt.div(sex_xt.sum(1).astype(float), axis=0)
+    sex_xt_pct = sex_xt.div(sex_xt.sum(axis=1).astype(float), axis=0)
     sex_xt_pct.plot(kind='bar', stacked=True, title='Survival Rate by Gender')
     plt.savefig(f'{output_dir}/survival_rate_gender.png')
     plt.close()
