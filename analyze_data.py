@@ -45,7 +45,7 @@ def analyze_data(file_path: str | Path) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Analyze Titanic data")
     parser.add_argument(
-        "--input", default="titanic/cleaned_train.csv", help="Input cleaned CSV path"
+        "--input", default="titanic/cleaned.csv", help="Input cleaned CSV path"
     )
     args = parser.parse_args()
     analyze_data(args.input)

@@ -48,9 +48,9 @@ def clean_data(input_path: str | Path, output_path: str | Path) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Clean Titanic data")
-    parser.add_argument("--input", default="titanic/train.csv", help="Input CSV path")
+    parser.add_argument("--input", default="titanic/raw.csv", help="Input CSV path")
     parser.add_argument(
-        "--output", default="titanic/cleaned_train.csv", help="Output CSV path"
+        "--output", default="titanic/cleaned.csv", help="Output CSV path"
     )
     args = parser.parse_args()
     clean_data(args.input, args.output)

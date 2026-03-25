@@ -99,7 +99,7 @@ def visualize_data(file_path: str | Path, output_dir: str | Path = "plots") -> N
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Visualize Titanic data")
     parser.add_argument(
-        "--input", default="titanic/cleaned_train.csv", help="Input cleaned CSV path"
+        "--input", default="titanic/cleaned.csv", help="Input cleaned CSV path"
     )
     parser.add_argument("--output-dir", default="plots", help="Directory to save plots")
     args = parser.parse_args()
