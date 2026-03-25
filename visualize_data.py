@@ -17,9 +17,13 @@ def visualize_data(file_path: str | Path, output_dir: str | Path = "plots") -> N
     # Map raw values to descriptive labels
     df["Survived_Label"] = df["Survived"].map({0: "Died", 1: "Survived"})
     df["Sex"] = df["Sex"].str.title()
-    df["Pclass_Label"] = df["Pclass"].map({1: "1st Class", 2: "2nd Class", 3: "3rd Class"})
-    df["Embarked"] = df["Embarked"].map({"C": "Cherbourg", "Q": "Queenstown", "S": "Southampton"})
-    
+    df["Pclass_Label"] = df["Pclass"].map(
+        {1: "1st Class", 2: "2nd Class", 3: "3rd Class"}
+    )
+    df["Embarked"] = df["Embarked"].map(
+        {"C": "Cherbourg", "Q": "Queenstown", "S": "Southampton"}
+    )
+
     pclass_order = ["1st Class", "2nd Class", "3rd Class"]
 
     # Global plot styling
@@ -29,7 +33,9 @@ def visualize_data(file_path: str | Path, output_dir: str | Path = "plots") -> N
     fig, axes = plt.subplots(nrows=3, ncols=2, figsize=(12, 12))
 
     # Survival Counts
-    sns.countplot(data=df, x="Survived_Label", ax=axes[0, 0], order=["Died", "Survived"])
+    sns.countplot(
+        data=df, x="Survived_Label", ax=axes[0, 0], order=["Died", "Survived"]
+    )
     axes[0, 0].set_title("Survival Counts")
     axes[0, 0].set_xlabel("Survival Status")
 
@@ -60,7 +66,9 @@ def visualize_data(file_path: str | Path, output_dir: str | Path = "plots") -> N
     # 2. Survival Rate by Feature
     # Pclass
     plt.figure(figsize=(8, 6))
-    sns.barplot(data=df, x="Pclass_Label", y="Survived", errorbar=None, order=pclass_order)
+    sns.barplot(
+        data=df, x="Pclass_Label", y="Survived", errorbar=None, order=pclass_order
+    )
     plt.title("Survival Rate by Pclass")
     plt.xlabel("Passenger Class")
     plt.savefig(out_path / "survival_rate_pclass.png", dpi=300)
