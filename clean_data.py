@@ -1,16 +1,16 @@
 import pandas as pd
+import argparse
+from pathlib import Path
 
 
-def clean_data(input_path, output_path):
+def clean_data(input_path: str | Path, output_path: str | Path) -> None:
     """
     Performs data cleaning and feature engineering on the Titanic dataset.
     """
     df = pd.read_csv(input_path)
 
     # 1. Sex Mapping
-    sexes = sorted(df["Sex"].unique())
-    genders_mapping = dict(zip(sexes, range(0, len(sexes) + 1)))
-    df["Sex_Val"] = df["Sex"].map(genders_mapping).astype(int)
+    df["Sex_Val"] = pd.Categorical(df["Sex"]).codes
 
     # 2. Age Imputation
     # Fill missing Age using the median of their Sex and Pclass group
@@ -32,16 +32,25 @@ def clean_data(input_path, output_path):
 
     # 4. Create Dummy Variables for Embarked
     df = pd.concat(
-        [df, pd.get_dummies(df["Embarked_Val"], prefix="Embarked_Val")], axis=1
+        [df, pd.get_dummies(df["Embarked_Val"], prefix="Embarked_Val", dtype=int)],
+        axis=1,
     )
 
     # 5. Family Size Feature
     df["FamilySize"] = df["SibSp"] + df["Parch"]
 
     # Save the cleaned data
-    df.to_csv(output_path, index=False)
-    print(f"Cleaned data saved to: {output_path}")
+    out_path = Path(output_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    df.to_csv(out_path, index=False)
+    print(f"Cleaned data saved to: {out_path}")
 
 
 if __name__ == "__main__":
-    clean_data("titanic/train.csv", "titanic/cleaned_train.csv")
+    parser = argparse.ArgumentParser(description="Clean Titanic data")
+    parser.add_argument("--input", default="titanic/train.csv", help="Input CSV path")
+    parser.add_argument(
+        "--output", default="titanic/cleaned_train.csv", help="Output CSV path"
+    )
+    args = parser.parse_args()
+    clean_data(args.input, args.output)

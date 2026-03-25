@@ -1,86 +1,95 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-import os
+import seaborn as sns
+import argparse
+from pathlib import Path
 
 
-def visualize_data(file_path, output_dir="plots"):
+def visualize_data(file_path: str | Path, output_dir: str | Path = "plots") -> None:
     """
-    Generates visualizations for the Titanic dataset.
+    Generates visualizations for the Titanic dataset using Seaborn.
     """
     df = pd.read_csv(file_path)
 
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    out_path = Path(output_dir)
+    out_path.mkdir(parents=True, exist_ok=True)
 
     # Global plot styling
-    plt.rc("figure", figsize=(10, 5))
-    figsize_with_subplots = (10, 10)
+    sns.set_theme(style="whitegrid")
 
     # 1. Feature Grid Visualization
-    plt.figure(figsize=figsize_with_subplots)
-    fig_dims = (3, 2)
+    fig, axes = plt.subplots(nrows=3, ncols=2, figsize=(12, 12))
 
     # Survival Counts
-    plt.subplot2grid(fig_dims, (0, 0))
-    df["Survived"].value_counts().plot(kind="bar", title="Survival Counts")
+    sns.countplot(data=df, x="Survived", ax=axes[0, 0])
+    axes[0, 0].set_title("Survival Counts")
 
     # Pclass Counts
-    plt.subplot2grid(fig_dims, (0, 1))
-    df["Pclass"].value_counts().plot(kind="bar", title="Passenger Class Counts")
+    sns.countplot(data=df, x="Pclass", ax=axes[0, 1])
+    axes[0, 1].set_title("Passenger Class Counts")
 
     # Gender Counts
-    plt.subplot2grid(fig_dims, (1, 0))
-    df["Sex"].value_counts().plot(kind="bar", title="Gender Counts")
-    plt.xticks(rotation=0)
+    sns.countplot(data=df, x="Sex", ax=axes[1, 0])
+    axes[1, 0].set_title("Gender Counts")
 
     # Embarked Counts
-    plt.subplot2grid(fig_dims, (1, 1))
-    df["Embarked"].value_counts().plot(kind="bar", title="Ports of Embarkation Counts")
+    sns.countplot(data=df, x="Embarked", ax=axes[1, 1])
+    axes[1, 1].set_title("Ports of Embarkation Counts")
 
     # Age Histogram
-    plt.subplot2grid(fig_dims, (2, 0))
-    df["Age"].hist()
-    plt.title("Age Histogram")
+    sns.histplot(data=df, x="Age", bins=20, ax=axes[2, 0])
+    axes[2, 0].set_title("Age Histogram")
+
+    # Remove empty subplot
+    fig.delaxes(axes[2, 1])
 
     plt.tight_layout()
-    plt.savefig(f"{output_dir}/feature_distributions.png")
+    plt.savefig(out_path / "feature_distributions.png", dpi=300)
     plt.close()
 
     # 2. Survival Rate by Feature
     # Pclass
-    pclass_xt = pd.crosstab(df["Pclass"], df["Survived"])
-    pclass_xt_pct = pclass_xt.div(pclass_xt.sum(axis=1).astype(float), axis=0)
-    pclass_xt_pct.plot(kind="bar", stacked=True, title="Survival Rate by Pclass")
-    plt.savefig(f"{output_dir}/survival_rate_pclass.png")
+    plt.figure(figsize=(8, 6))
+    sns.barplot(data=df, x="Pclass", y="Survived", errorbar=None)
+    plt.title("Survival Rate by Pclass")
+    plt.savefig(out_path / "survival_rate_pclass.png", dpi=300)
     plt.close()
 
     # Sex
-    sex_xt = pd.crosstab(df["Sex_Val"], df["Survived"])
-    sex_xt_pct = sex_xt.div(sex_xt.sum(axis=1).astype(float), axis=0)
-    sex_xt_pct.plot(kind="bar", stacked=True, title="Survival Rate by Gender")
-    plt.savefig(f"{output_dir}/survival_rate_gender.png")
+    plt.figure(figsize=(8, 6))
+    sns.barplot(data=df, x="Sex", y="Survived", errorbar=None)
+    plt.title("Survival Rate by Gender")
+    plt.savefig(out_path / "survival_rate_gender.png", dpi=300)
     plt.close()
 
     # Age Groups
-    df1 = df[df["Survived"] == 0]["AgeFill"]
-    df2 = df[df["Survived"] == 1]["AgeFill"]
-    plt.hist([df1, df2], bins=8, stacked=True)
-    plt.legend(("Died", "Survived"), loc="best")
+    plt.figure(figsize=(8, 6))
+    sns.histplot(data=df, x="AgeFill", hue="Survived", multiple="stack", bins=8)
     plt.title("Survivors by Age Groups Histogram")
-    plt.savefig(f"{output_dir}/survival_rate_age.png")
+    plt.savefig(out_path / "survival_rate_age.png", dpi=300)
     plt.close()
 
     # Family Size
-    df1 = df[df["Survived"] == 0]["FamilySize"]
-    df2 = df[df["Survived"] == 1]["FamilySize"]
-    plt.hist([df1, df2], bins=int(df["FamilySize"].max()) + 1, stacked=True)
-    plt.legend(("Died", "Survived"), loc="best")
+    plt.figure(figsize=(8, 6))
+    sns.histplot(
+        data=df,
+        x="FamilySize",
+        hue="Survived",
+        multiple="stack",
+        bins=int(df["FamilySize"].max()) + 1,
+    )
     plt.title("Survivors by Family Size")
-    plt.savefig(f"{output_dir}/survival_rate_family_size.png")
+    plt.savefig(out_path / "survival_rate_family_size.png", dpi=300)
     plt.close()
 
-    print(f"Visualizations saved to directory: {output_dir}")
+    print(f"Visualizations saved to directory: {out_path}")
 
 
 if __name__ == "__main__":
-    visualize_data("titanic/cleaned_train.csv")
+    parser = argparse.ArgumentParser(description="Visualize Titanic data")
+    parser.add_argument(
+        "--input", default="titanic/cleaned_train.csv", help="Input cleaned CSV path"
+    )
+    parser.add_argument("--output-dir", default="plots", help="Directory to save plots")
+    args = parser.parse_args()
+    visualize_data(args.input, args.output_dir)
