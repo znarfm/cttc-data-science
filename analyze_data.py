@@ -3,6 +3,7 @@ from rich.console import Console
 import argparse
 from pathlib import Path
 from typing import Any, Dict
+from scipy import stats
 
 
 def analyze_data(file_path: str | Path, silent: bool = False) -> Dict[str, Any]:
@@ -58,6 +59,35 @@ def analyze_data(file_path: str | Path, silent: bool = False) -> Dict[str, Any]:
     if not silent:
         console.print("\n[bold]Survival rate by Family Size:[/bold]")
         console.print(results["family_survival"])
+
+    # 7. Correlation Analysis
+    numerical_df = df.select_dtypes(include=["number"])
+    results["correlations"] = numerical_df.corr()["Survived"].sort_values(
+        ascending=False
+    )
+    if not silent:
+        console.print("\n[bold]Correlations with Survival:[/bold]")
+        console.print(results["correlations"])
+
+    # 8. Statistical Significance (T-test for Age)
+    if "AgeFill" in df.columns:
+        survived_age = df[df["Survived"] == 1]["AgeFill"].dropna()
+        died_age = df[df["Survived"] == 0]["AgeFill"].dropna()
+        t_stat, p_val = stats.ttest_ind(survived_age, died_age)
+        results["age_ttest"] = {"t_stat": t_stat, "p_val": p_val}
+        if not silent:
+            console.print(
+                "\n[bold]T-test for Age difference (Survivors vs Died):[/bold]"
+            )
+            console.print(f"T-statistic: {t_stat:.4f}, P-value: {p_val:.4f}")
+            if p_val < 0.05:
+                console.print(
+                    "[green]The difference in age is statistically significant.[/green]"
+                )
+            else:
+                console.print(
+                    "[yellow]The difference in age is not statistically significant.[/yellow]"
+                )
 
     return results
 

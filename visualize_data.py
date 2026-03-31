@@ -28,7 +28,7 @@ def create_interactive_plots(file_path: str | Path) -> Dict[str, Any]:
 
     plots = {}
 
-    # 1. Main Distribution (Grid replacement)
+    # 1. Main Distribution
     plots["feature_distributions"] = px.histogram(
         df,
         x="Survived_Label",
@@ -38,7 +38,7 @@ def create_interactive_plots(file_path: str | Path) -> Dict[str, Any]:
         template="plotly_white",
     )
 
-    # 2. Survival by Pclass (Aggregated)
+    # 2. Survival by Pclass
     pclass_survival = df.groupby("Pclass_Label")["Survived"].mean().reset_index()
     plots["survival_pclass"] = px.bar(
         pclass_survival,
@@ -51,42 +51,42 @@ def create_interactive_plots(file_path: str | Path) -> Dict[str, Any]:
         template="plotly_white",
     )
 
-    # 3. Survival by Gender (Aggregated)
-    gender_survival = df.groupby("Sex")["Survived"].mean().reset_index()
-    plots["survival_gender"] = px.bar(
-        gender_survival,
-        x="Sex",
-        y="Survived",
-        color="Sex",
-        title="Survival Rate by Gender",
-        labels={"Sex": "Gender", "Survived": "Survival Rate"},
+    # 3. Correlation Heatmap
+    numerical_df = df.select_dtypes(include=["number"])
+    corr = numerical_df.corr()
+    plots["correlation_heatmap"] = px.imshow(
+        corr,
+        text_auto=True,
+        aspect="auto",
+        title="Feature Correlation Heatmap",
         template="plotly_white",
     )
 
-    # 4. Age Distribution
-    if "Age" in df.columns:
-        plots["age_dist"] = px.histogram(
-            df,
-            x="Age",
-            color="Survived_Label",
-            nbins=20,
-            title="Age Distribution by Survival Status",
-            labels={"Survived_Label": "Status"},
-            template="plotly_white",
-            barmode="overlay",
-        )
+    # 4. Age Distribution (Violin)
+    plots["age_violin"] = px.violin(
+        df,
+        y="AgeFill",
+        x="Survived_Label",
+        color="Survived_Label",
+        box=True,
+        points="all",
+        title="Age Distribution by Survival Status",
+        labels={"AgeFill": "Age", "Survived_Label": "Status"},
+        template="plotly_white",
+    )
 
-    # 5. Family Size
-    if "FamilySize" in df.columns:
-        plots["family_size"] = px.histogram(
-            df,
-            x="FamilySize",
-            color="Survived_Label",
-            title="Survival by Family Size",
-            labels={"Survived_Label": "Status"},
-            template="plotly_white",
-            barmode="group",
-        )
+    # 5. Fare vs Age Scatter
+    plots["fare_age_scatter"] = px.scatter(
+        df,
+        x="AgeFill",
+        y="Fare",
+        color="Survived_Label",
+        size="Pclass",
+        hover_data=["Sex", "Pclass"],
+        title="Fare vs Age Colored by Survival",
+        labels={"AgeFill": "Age"},
+        template="plotly_white",
+    )
 
     return plots
 
@@ -123,7 +123,7 @@ def visualize_data(
     sns.set_theme(style="whitegrid")
 
     # 1. Feature Grid Visualization
-    fig1, axes = plt.subplots(nrows=3, ncols=2, figsize=(12, 12))
+    fig1, axes = plt.subplots(nrows=3, ncols=2, figsize=(15, 15))
 
     # Survival Counts
     sns.countplot(
@@ -145,34 +145,44 @@ def visualize_data(
         axes[1, 1].set_title("Ports of Embarkation Counts")
 
     # Age Histogram
-    if "Age" in df.columns:
-        sns.histplot(data=df, x="Age", bins=20, ax=axes[2, 0])
-        axes[2, 0].set_title("Age Histogram")
+    if "AgeFill" in df.columns:
+        sns.histplot(data=df, x="AgeFill", bins=20, ax=axes[2, 0], kde=True)
+        axes[2, 0].set_title("Age Distribution (Imputed)")
 
-    fig1.delaxes(axes[2, 1])
+    # Fare Histogram
+    if "Fare" in df.columns:
+        sns.histplot(data=df, x="Fare", bins=20, ax=axes[2, 1], kde=True)
+        axes[2, 1].set_title("Fare Distribution")
+
     plt.tight_layout()
 
     if output_dir:
         fig1.savefig(Path(output_dir) / "feature_distributions.png", dpi=300)
     if return_figs:
         figs.append(fig1)
-    else:
-        plt.close(fig1)
 
-    # Bar Charts (Aggregated)
-    for col, title, out in [
-        ("Pclass_Label", "Survival Rate by Pclass", "survival_rate_pclass.png"),
-        ("Sex", "Survival Rate by Gender", "survival_rate_gender.png"),
-    ]:
-        fig = plt.figure(figsize=(8, 6))
-        sns.barplot(data=df, x=col, y="Survived", errorbar=None)
-        plt.title(title)
-        if output_dir:
-            plt.savefig(Path(output_dir) / out, dpi=300)
-        if return_figs:
-            figs.append(fig)
-        else:
-            plt.close(fig)
+    # 2. Correlation Heatmap
+    fig2 = plt.figure(figsize=(12, 10))
+    numerical_df = df.select_dtypes(include=["number"])
+    sns.heatmap(numerical_df.corr(), annot=True, cmap="coolwarm", fmt=".2f")
+    plt.title("Feature Correlation Heatmap")
+    if output_dir:
+        plt.savefig(Path(output_dir) / "correlation_heatmap.png", dpi=300)
+    if return_figs:
+        figs.append(fig2)
+
+    # 3. Violin Plots for Age and Fare
+    fig3, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
+    sns.violinplot(data=df, x="Survived_Label", y="AgeFill", ax=ax1, split=True)
+    ax1.set_title("Age Distribution by Survival")
+    sns.violinplot(data=df, x="Survived_Label", y="Fare", ax=ax2, split=True)
+    ax2.set_title("Fare Distribution by Survival")
+    if output_dir:
+        plt.savefig(Path(output_dir) / "violin_plots.png", dpi=300)
+    if return_figs:
+        figs.append(fig3)
+
+    return figs if return_figs else None
 
     return figs if return_figs else None
 

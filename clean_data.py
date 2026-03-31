@@ -23,14 +23,55 @@ def clean_data(
     # 1. Sex Mapping
     df["Sex_Val"] = pd.Categorical(df["Sex"]).codes
 
-    # 2. Age Imputation
-    # Fill missing Age using the median of their Sex and Pclass group
+    # 1a. Title Extraction
+    if "Name" in df.columns:
+        df["Title"] = df["Name"].str.extract(r" ([A-Za-z]+)\.", expand=False)
+        # Group rare titles
+        rare_titles = [
+            "Lady",
+            "Countess",
+            "Capt",
+            "Col",
+            "Don",
+            "Dr",
+            "Major",
+            "Rev",
+            "Sir",
+            "Jonkheer",
+            "Dona",
+        ]
+        df["Title"] = df["Title"].replace(rare_titles, "Rare")
+        df["Title"] = df["Title"].replace("Mlle", "Miss")
+        df["Title"] = df["Title"].replace("Ms", "Miss")
+        df["Title"] = df["Title"].replace("Mme", "Mrs")
+
+        # Title Mapping
+        title_mapping = {"Mr": 1, "Miss": 2, "Mrs": 3, "Master": 4, "Rare": 5}
+        df["Title_Val"] = df["Title"].map(title_mapping).fillna(0).astype(int)
+
+    # 1b. Deck Extraction (from Cabin)
+    if "Cabin" in df.columns:
+        df["Deck"] = df["Cabin"].str[0].fillna("M")
+        deck_list = sorted(df["Deck"].unique())
+        deck_mapping = {deck: i for i, deck in enumerate(deck_list)}
+        df["Deck_Val"] = df["Deck"].map(deck_mapping).astype(int)
+
+    # 2. Age Imputation (Refined using Title and Pclass)
     if "Age" in df.columns:
         df["AgeFill"] = df["Age"]
-        df["AgeFill"] = (
-            df["AgeFill"]
-            .groupby([df["Sex_Val"], df["Pclass"]])
-            .transform(lambda x: x.fillna(x.median()))
+        group_cols = (
+            ["Title_Val", "Pclass"]
+            if "Title_Val" in df.columns
+            else ["Sex_Val", "Pclass"]
+        )
+        df["AgeFill"] = df.groupby(group_cols)["AgeFill"].transform(
+            lambda x: x.fillna(x.median())
+        )
+
+    # 2b. Fare Handling
+    if "Fare" in df.columns:
+        df["Fare"] = df.groupby("Pclass")["Fare"].transform(
+            lambda x: x.fillna(x.median())
         )
 
     # 3. Embarked Mapping
@@ -54,6 +95,7 @@ def clean_data(
     # 5. Family Size Feature
     if "SibSp" in df.columns and "Parch" in df.columns:
         df["FamilySize"] = df["SibSp"] + df["Parch"]
+        df["IsAlone"] = (df["FamilySize"] == 0).astype(int)
 
     # Save the cleaned data if output_path is provided
     if output_path:
