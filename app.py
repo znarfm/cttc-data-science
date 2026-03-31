@@ -13,6 +13,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+
 def load_data(path="titanic/raw.csv"):
     if Path(path).exists():
         return pd.read_csv(path)
@@ -21,15 +22,21 @@ def load_data(path="titanic/raw.csv"):
 
 def main():
     st.sidebar.title("🚢 Titanic Explorer")
-    
+
     page = st.sidebar.radio(
         "Navigation",
-        ["Overview", "Data Cleaning", "Statistical Analysis", "Visualizations", "AI/ML Prediction"],
+        [
+            "Overview",
+            "Data Cleaning",
+            "Statistical Analysis",
+            "Visualizations",
+            "AI/ML Prediction",
+        ],
     )
 
     raw_data = load_data()
     cleaned_path = Path("titanic/cleaned.csv")
-    
+
     if raw_data is None:
         st.error("Raw data file 'titanic/raw.csv' not found.")
         return
@@ -42,7 +49,7 @@ def main():
             clean, and analyze the famous Titanic passenger dataset.
             """
         )
-        
+
         col1, col2, col3 = st.columns(3)
         col1.metric("Total Passengers", len(raw_data))
         col2.metric("Features", len(raw_data.columns))
@@ -50,7 +57,7 @@ def main():
 
         st.subheader("Raw Data Preview")
         st.dataframe(raw_data, width="stretch")
-        
+
         with st.expander("Feature Legend"):
             st.markdown(
                 """
@@ -72,15 +79,15 @@ def main():
         st.markdown(
             "Clean the data by imputing missing values and mapping categorical features to numerical values."
         )
-        
+
         if st.button("🚀 Run Cleaning Pipeline", type="primary"):
             with st.spinner("Cleaning data..."):
                 cleaned_df = clean_data("titanic/raw.csv", "titanic/cleaned.csv")
                 st.success("Data cleaned and saved to 'titanic/cleaned.csv'!")
-                
+
                 st.subheader("Cleaned Data Preview")
                 st.dataframe(cleaned_df, width="stretch")
-                
+
                 st.subheader("Transformation Summary")
                 st.markdown(
                     """
@@ -92,60 +99,66 @@ def main():
                 )
         else:
             if cleaned_path.exists():
-                st.info("Cleaned data already exists. Click the button above to re-run the pipeline.")
+                st.info(
+                    "Cleaned data already exists. Click the button above to re-run the pipeline."
+                )
                 st.dataframe(pd.read_csv(cleaned_path), width="stretch")
             else:
                 st.warning("Cleaned data not found. Please run the pipeline.")
 
     elif page == "Statistical Analysis":
         st.title("📊 Statistical Analysis")
-        
+
         if not cleaned_path.exists():
             st.warning("Please clean the data first.")
         else:
             results = analyze_data(cleaned_path, silent=True)
-            
+
             st.subheader("Key Insights")
             col1, col2 = st.columns(2)
-            col1.metric("Overall Survival Rate", f"{results['overall_survival_rate']:.2%}")
-            col2.metric("Cleaned Dataset Size", results['total_passengers'])
-            
+            col1.metric(
+                "Overall Survival Rate", f"{results['overall_survival_rate']:.2%}"
+            )
+            col2.metric("Cleaned Dataset Size", results["total_passengers"])
+
             st.subheader("Survival Rates by Feature")
             res_col1, res_col2 = st.columns(2)
-            
+
             with res_col1:
                 st.markdown("**By Gender**")
-                st.table(results['gender_survival'])
-                
+                st.table(results["gender_survival"])
+
                 st.markdown("**By Passenger Class**")
-                st.table(results['pclass_survival'])
-                
+                st.table(results["pclass_survival"])
+
             with res_col2:
                 st.markdown("**By Family Size**")
-                st.table(results['family_survival'])
-                
-                if 'port_survival' in results:
+                st.table(results["family_survival"])
+
+                if "port_survival" in results:
                     st.markdown("**By Port**")
-                    st.table(results['port_survival'])
+                    st.table(results["port_survival"])
 
             st.subheader("Feature Statistics")
-            st.write(results['stats'])
+            st.write(results["stats"])
 
     elif page == "Visualizations":
         st.title("📈 Interactive Exploratory Data Analysis")
-        
+
         if not cleaned_path.exists():
             st.warning("Please clean the data first.")
         else:
             plots = create_interactive_plots(cleaned_path)
-            
+
             st.subheader("1. 📊 Survival Distributions")
             st.plotly_chart(plots["feature_distributions"], use_container_width=True)
-            
+
             st.subheader("2. 🔍 Deep Dive by Features")
-            
-            viz_tabs = st.tabs(["Passenger Class", "Gender", "Age Groups", "Family Size"])
-            
+
+            viz_tabs = st.tabs(
+                ["Passenger Class", "Gender", "Age Groups", "Family Size"]
+            )
+
             with viz_tabs[0]:
                 st.plotly_chart(plots["survival_pclass"], use_container_width=True)
             with viz_tabs[1]:
@@ -162,19 +175,19 @@ def main():
         import plotly.express as px
         import plotly.graph_objects as go
         import joblib
-        
+
         st.title("🤖 Survival Prediction (AI/ML)")
         st.markdown(
             "Train a machine learning model using the cleaned data and test custom passenger scenarios."
         )
-        
+
         model_path = Path("titanic_model.joblib")
-        
+
         if not cleaned_path.exists():
             st.warning("Please clean the data first.")
         else:
             df = pd.read_csv(cleaned_path)
-            
+
             # Model Training / Loading Logic
             col_train1, col_train2 = st.columns([2, 1])
             with col_train1:
@@ -186,7 +199,7 @@ def main():
                         # Save to disk
                         joblib.dump({"model": model, "metrics": metrics}, model_path)
                         st.success("Model trained and saved successfully!")
-            
+
             # Load existing model if not in session state
             if "model" not in st.session_state and model_path.exists():
                 saved_data = joblib.load(model_path)
@@ -199,14 +212,16 @@ def main():
                 st.markdown("---")
                 st.subheader("📊 Model Performance & Insights")
                 metric_col1, metric_col2 = st.columns(2)
-                metric_col1.metric("Model Accuracy", f"{st.session_state.metrics['accuracy']:.2%}")
-                
+                metric_col1.metric(
+                    "Model Accuracy", f"{st.session_state.metrics['accuracy']:.2%}"
+                )
+
                 # Feature Importance Chart
                 fi = st.session_state.metrics["feature_importance"]
                 fi_df = pd.DataFrame(
                     list(fi.items()), columns=["Feature", "Importance"]
                 ).sort_values(by="Importance", ascending=True)
-                
+
                 fig_fi = px.bar(
                     fi_df,
                     x="Importance",
@@ -216,30 +231,44 @@ def main():
                     template="plotly_white",
                 )
                 st.plotly_chart(fig_fi, width="stretch")
-                
+
                 st.markdown("---")
                 st.subheader("🔮 Interactive Survival Predictor")
-                st.markdown("Customize a passenger profile to see the predicted survival probability.")
-                
+                st.markdown(
+                    "Customize a passenger profile to see the predicted survival probability."
+                )
+
                 # Prediction Form
                 with st.form("prediction_form"):
                     p_col1, p_col2 = st.columns(2)
-                    
+
                     with p_col1:
-                        pclass = st.selectbox("Ticket Class (Pclass)", [1, 2, 3], index=2)
+                        pclass = st.selectbox(
+                            "Ticket Class (Pclass)", [1, 2, 3], index=2
+                        )
                         sex = st.selectbox("Gender", ["Female", "Male"], index=1)
                         age = st.slider("Age (Years)", 1, 80, 30)
-                        fare = st.number_input("Passenger Fare ($)", min_value=0.0, value=30.0)
-                        
-                    with p_col2:
-                        sibsp = st.number_input("Number of Siblings/Spouses (SibSp)", 0, 8, 0)
-                        parch = st.number_input("Number of Parents/Children (Parch)", 0, 6, 0)
-                        embarked = st.selectbox(
-                            "Port of Embarkation", ["Cherbourg", "Queenstown", "Southampton"], index=2
+                        fare = st.number_input(
+                            "Passenger Fare ($)", min_value=0.0, value=30.0
                         )
-                    
-                    predict_btn = st.form_submit_button("🚀 Predict Survival", type="primary")
-                
+
+                    with p_col2:
+                        sibsp = st.number_input(
+                            "Number of Siblings/Spouses (SibSp)", 0, 8, 0
+                        )
+                        parch = st.number_input(
+                            "Number of Parents/Children (Parch)", 0, 6, 0
+                        )
+                        embarked = st.selectbox(
+                            "Port of Embarkation",
+                            ["Cherbourg", "Queenstown", "Southampton"],
+                            index=2,
+                        )
+
+                    predict_btn = st.form_submit_button(
+                        "🚀 Predict Survival", type="primary"
+                    )
+
                 if predict_btn:
                     # Prepare Inputs
                     input_data = {
@@ -252,39 +281,48 @@ def main():
                         "Embarked_Val_2": 0,
                         "Embarked_Val_3": 0,
                     }
-                    
-                    port_id = {"Cherbourg": 1, "Queenstown": 2, "Southampton": 3}[embarked]
+
+                    port_id = {"Cherbourg": 1, "Queenstown": 2, "Southampton": 3}[
+                        embarked
+                    ]
                     input_data[f"Embarked_Val_{port_id}"] = 1
-                    
+
                     prediction, probability = predict_survival(
-                        st.session_state.model, 
-                        input_data, 
-                        st.session_state.metrics["feature_names"]
+                        st.session_state.model,
+                        input_data,
+                        st.session_state.metrics["feature_names"],
                     )
-                    
+
                     st.markdown("### Prediction Result")
                     if prediction == 1:
-                        st.success(f"**Predicted Status**: Survived (Probability: {probability:.2%})")
+                        st.success(
+                            f"**Predicted Status**: Survived (Probability: {probability:.2%})"
+                        )
                     else:
-                        st.error(f"**Predicted Status**: Died (Probability: {1-probability:.2%})")
-                    
+                        st.error(
+                            f"**Predicted Status**: Died (Probability: {1 - probability:.2%})"
+                        )
+
                     # Visual Indicator for Probability
-                    fig_prob = go.Figure(go.Indicator(
-                        mode="gauge+number",
-                        value=probability * 100,
-                        title={"text": "Survival Probability (%)"},
-                        gauge={
-                            "axis": {"range": [0, 100]},
-                            "bar": {"color": "#1e40af"},
-                            "steps": [
-                                {"range": [0, 50], "color": "#fecaca"},
-                                {"range": [50, 100], "color": "#bbf7d0"}
-                            ]
-                        }
-                    ))
+                    fig_prob = go.Figure(
+                        go.Indicator(
+                            mode="gauge+number",
+                            value=probability * 100,
+                            title={"text": "Survival Probability (%)"},
+                            gauge={
+                                "axis": {"range": [0, 100]},
+                                "bar": {"color": "#1e40af"},
+                                "steps": [
+                                    {"range": [0, 50], "color": "#fecaca"},
+                                    {"range": [50, 100], "color": "#bbf7d0"},
+                                ],
+                            },
+                        )
+                    )
                     st.plotly_chart(fig_prob, width="stretch")
             else:
                 st.info("No model found. Click the button above to train the AI.")
+
 
 if __name__ == "__main__":
     main()

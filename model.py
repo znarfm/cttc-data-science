@@ -26,39 +26,45 @@ def train_model(df: pd.DataFrame) -> Tuple[RandomForestClassifier, Dict[str, Any
         "Embarked_Val_2",
         "Embarked_Val_3",
     ]
-    
+
     # Ensure all columns exist in the DataFrame
     features_in_df = [col for col in feature_cols if col in df.columns]
-    
+
     X = df[features_in_df]
     y = df["Survived"]
-    
+
     # Split the data
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42
     )
-    
+
     # Initialize and train the model
     model = RandomForestClassifier(n_estimators=100, random_state=42)
     model.fit(X_train, y_train)
-    
+
     # Evaluate the model
     y_pred = model.predict(X_test)
     accuracy = accuracy_score(y_test, y_pred)
-    
+
     # Collect metrics
     metrics = {
         "accuracy": accuracy,
-        "classification_report": classification_report(y_test, y_pred, output_dict=True),
+        "classification_report": classification_report(
+            y_test, y_pred, output_dict=True
+        ),
         "confusion_matrix": confusion_matrix(y_test, y_pred).tolist(),
-        "feature_importance": dict(zip(features_in_df, model.feature_importances_.tolist())),
-        "feature_names": features_in_df
+        "feature_importance": dict(
+            zip(features_in_df, model.feature_importances_.tolist())
+        ),
+        "feature_names": features_in_df,
     }
-    
+
     return model, metrics
 
 
-def predict_survival(model: RandomForestClassifier, input_data: Dict[str, Any], feature_names: list) -> Tuple[int, float]:
+def predict_survival(
+    model: RandomForestClassifier, input_data: Dict[str, Any], feature_names: list
+) -> Tuple[int, float]:
     """
     Predicts survival for a given passenger profile.
     Args:
@@ -70,14 +76,14 @@ def predict_survival(model: RandomForestClassifier, input_data: Dict[str, Any], 
     """
     # Create a single-row DataFrame from input
     input_df = pd.DataFrame([input_data])
-    
+
     # Ensure features match training columns
     input_df = input_df[feature_names]
-    
+
     # Predict
     prediction = model.predict(input_df)[0]
     probability = model.predict_proba(input_df)[0][1]
-    
+
     return int(prediction), float(probability)
 
 
