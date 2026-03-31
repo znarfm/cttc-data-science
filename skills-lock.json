@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "skills": {
+    "data-scientist": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "computedHash": "1ee00366f25128fcc84974459c0882d0c9e55c7ebd3e8a469d149eae16355989"
+    },
+    "developing-with-streamlit": {
+      "source": "streamlit/agent-skills",
+      "sourceType": "github",
+      "computedHash": "d366960761de1ec907dee42ddbdc08b9c868584cebc8c9fe8e0efdccb4bc5db7"
+    },
+    "uv": {
+      "source": "astral-sh/claude-code-plugins",
+      "sourceType": "github",
+      "computedHash": "b1ca9e9826d906f6ee6ea172da50018ec13bb622ac9ba7204bda8b10e7fc8d0a"
+    }
+  }
+}
