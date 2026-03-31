@@ -158,37 +158,133 @@ def main():
                     st.plotly_chart(plots["family_size"], use_container_width=True)
 
     elif page == "AI/ML Prediction":
+        from model import train_model, predict_survival
+        import plotly.express as px
+        import plotly.graph_objects as go
+        import joblib
+        
         st.title("🤖 Survival Prediction (AI/ML)")
         st.markdown(
-            """
-            > [!NOTE]
-            > **Planned Feature**: Interact with the model by inputting passenger data to predict survival probability.
-            """
+            "Train a machine learning model using the cleaned data and test custom passenger scenarios."
         )
         
-        st.info("The machine learning model integration is currently under development.")
+        model_path = Path("titanic_model.joblib")
         
-        # Premium Placeholder UI
-        with st.container():
-            st.markdown("### 🛠️ Development Progress")
-            st.progress(25)
+        if not cleaned_path.exists():
+            st.warning("Please clean the data first.")
+        else:
+            df = pd.read_csv(cleaned_path)
             
-            st.subheader("Upcoming Features:")
-            st.markdown(
-                """
-                - [ ] Scikit-learn Model Training (Random Forest/XGBoost)
-                - [ ] Interactive Input Form for custom predictions
-                - [ ] Model Performance Metrics (ROC/AUC, Confusion Matrix)
-                - [ ] Feature Importance Visualization
-                """
-            )
+            # Model Training / Loading Logic
+            col_train1, col_train2 = st.columns([2, 1])
+            with col_train1:
+                if st.button("🚀 Train AI Model", type="primary"):
+                    with st.spinner("Training Random Forest Classifier..."):
+                        model, metrics = train_model(df)
+                        st.session_state.model = model
+                        st.session_state.metrics = metrics
+                        # Save to disk
+                        joblib.dump({"model": model, "metrics": metrics}, model_path)
+                        st.success("Model trained and saved successfully!")
             
-            if st.button("Check Model Compatibility"):
-                try:
-                    import sklearn
-                    st.success(f"Scikit-learn version {sklearn.__version__} is ready!")
-                except ImportError:
-                    st.error("Scikit-learn not found. Use 'uv add scikit-learn' to install.")
+            # Load existing model if not in session state
+            if "model" not in st.session_state and model_path.exists():
+                saved_data = joblib.load(model_path)
+                st.session_state.model = saved_data["model"]
+                st.session_state.metrics = saved_data["metrics"]
+                st.info("Loaded existing model from disk.")
+
+            if "model" in st.session_state:
+                # Dashboard for Metrics
+                st.markdown("---")
+                st.subheader("📊 Model Performance & Insights")
+                metric_col1, metric_col2 = st.columns(2)
+                metric_col1.metric("Model Accuracy", f"{st.session_state.metrics['accuracy']:.2%}")
+                
+                # Feature Importance Chart
+                fi = st.session_state.metrics["feature_importance"]
+                fi_df = pd.DataFrame(
+                    list(fi.items()), columns=["Feature", "Importance"]
+                ).sort_values(by="Importance", ascending=True)
+                
+                fig_fi = px.bar(
+                    fi_df,
+                    x="Importance",
+                    y="Feature",
+                    orientation="h",
+                    title="Model Feature Importance",
+                    template="plotly_white",
+                )
+                st.plotly_chart(fig_fi, width="stretch")
+                
+                st.markdown("---")
+                st.subheader("🔮 Interactive Survival Predictor")
+                st.markdown("Customize a passenger profile to see the predicted survival probability.")
+                
+                # Prediction Form
+                with st.form("prediction_form"):
+                    p_col1, p_col2 = st.columns(2)
+                    
+                    with p_col1:
+                        pclass = st.selectbox("Ticket Class (Pclass)", [1, 2, 3], index=2)
+                        sex = st.selectbox("Gender", ["Female", "Male"], index=1)
+                        age = st.slider("Age (Years)", 1, 80, 30)
+                        fare = st.number_input("Passenger Fare ($)", min_value=0.0, value=30.0)
+                        
+                    with p_col2:
+                        sibsp = st.number_input("Number of Siblings/Spouses (SibSp)", 0, 8, 0)
+                        parch = st.number_input("Number of Parents/Children (Parch)", 0, 6, 0)
+                        embarked = st.selectbox(
+                            "Port of Embarkation", ["Cherbourg", "Queenstown", "Southampton"], index=2
+                        )
+                    
+                    predict_btn = st.form_submit_button("🚀 Predict Survival", type="primary")
+                
+                if predict_btn:
+                    # Prepare Inputs
+                    input_data = {
+                        "Pclass": pclass,
+                        "Sex_Val": 0 if sex == "Female" else 1,
+                        "AgeFill": float(age),
+                        "Fare": float(fare),
+                        "FamilySize": float(sibsp + parch),
+                        "Embarked_Val_1": 0,
+                        "Embarked_Val_2": 0,
+                        "Embarked_Val_3": 0,
+                    }
+                    
+                    port_id = {"Cherbourg": 1, "Queenstown": 2, "Southampton": 3}[embarked]
+                    input_data[f"Embarked_Val_{port_id}"] = 1
+                    
+                    prediction, probability = predict_survival(
+                        st.session_state.model, 
+                        input_data, 
+                        st.session_state.metrics["feature_names"]
+                    )
+                    
+                    st.markdown("### Prediction Result")
+                    if prediction == 1:
+                        st.success(f"**Predicted Status**: Survived (Probability: {probability:.2%})")
+                    else:
+                        st.error(f"**Predicted Status**: Died (Probability: {1-probability:.2%})")
+                    
+                    # Visual Indicator for Probability
+                    fig_prob = go.Figure(go.Indicator(
+                        mode="gauge+number",
+                        value=probability * 100,
+                        title={"text": "Survival Probability (%)"},
+                        gauge={
+                            "axis": {"range": [0, 100]},
+                            "bar": {"color": "#1e40af"},
+                            "steps": [
+                                {"range": [0, 50], "color": "#fecaca"},
+                                {"range": [50, 100], "color": "#bbf7d0"}
+                            ]
+                        }
+                    ))
+                    st.plotly_chart(fig_prob, width="stretch")
+            else:
+                st.info("No model found. Click the button above to train the AI.")
 
 if __name__ == "__main__":
     main()
