@@ -8,3 +8,16 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Latex stuff
+*.tex
+*.pdf
+
+# Output
+
+# model
+*.joblib
+# graphs
+plots/
+# cleaned data
+cleaned.csv
