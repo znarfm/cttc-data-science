@@ -15,8 +15,6 @@ wheels/
 
 # Output
 
-# model
-*.joblib
 # graphs
 plots/
 # cleaned data
